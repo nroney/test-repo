@@ -10,33 +10,22 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Install Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '14'
-
       - name: Extract Branch Name
         id: extract_branch_name
         run: |
-          const fs = require('fs');
-          const branchName = process.env.GITHUB_REF.replace('refs/heads/', '');
-          const branchParts = branchName.split('-');
-          const branchPrefix = branchParts.slice(0, -1).join('-');
-          console.log(`::set-output name=branch_prefix::${branchPrefix}`);
+          branchName=$(echo "${GITHUB_REF#refs/heads/}")
+          branchPrefix=$(echo "$branchName" | awk -F'-' '{ for (i=1; i<NF; i++) printf "%s%s", $i, (i<NF-1 ? "-" : ""); }')
+          echo "::set-output name=branch_prefix::$branchPrefix"
 
       - name: Update PR Description
         run: |
-          const fs = require('fs');
-          const branchPrefix = process.env.branch_prefix;
-          const prNumber = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')).pull_request.number;
-          const description = fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8');
-          const updatedDescription = `${description.trim()}\n\n**Branch Prefix:** ${branchPrefix}`;
+          branchPrefix="${{ steps.extract_branch_name.outputs.branch_prefix }}"
+          prNumber=$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")
+          description=$(jq -r '.pull_request.body' "$GITHUB_EVENT_PATH")
+          updatedDescription="${description%\"}\n\n**Branch Prefix:** ${branchPrefix}\""
 
-          const { Octokit } = require("@octokit/core");
-          const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-          await octokit.request('PATCH /repos/{owner}/{repo}/pulls/{pull_number}', {
-            owner: process.env.GITHUB_REPOSITORY.split('/')[0],
-            repo: process.env.GITHUB_REPOSITORY.split('/')[1],
-            pull_number: prNumber,
-            body: updatedDescription
-          });
+          curl -X PATCH \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d "{\"body\": \"$updatedDescription\"}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$prNumber"
