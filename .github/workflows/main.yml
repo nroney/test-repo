@@ -17,7 +17,7 @@ jobs:
           branch_name=$(echo "${GITHUB_REF#refs/heads/}")
 
           # Extract the prefix before the last '-' occurrence
-          branch_prefix=$(echo "$branch_name" | sed 's/\(.*\)-[^-]*$/\1/')
+          branch_prefix=$(echo "$branch_name" | sed 's/-[^-]*$//')
 
           echo "::set-output name=branch_prefix::$branch_prefix"
 
