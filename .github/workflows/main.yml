@@ -16,14 +16,8 @@ jobs:
           # Get the branch name
           branch_name=$(echo "${GITHUB_REF#refs/heads/}")
 
-          # Split the branch name by the '-' delimiter
-          IFS='-' read -ra branch_parts <<< "$branch_name"
-
-          # Get the index of the last element
-          last_index=$((${#branch_parts[@]} - 1))
-
-          # Construct the branch prefix by joining the array elements before the last '-'
-          branch_prefix="${branch_parts[@]:0:$last_index}"
+          # Extract the prefix before the last '-' occurrence
+          branch_prefix=$(echo "$branch_name" | sed 's/\(.*\)-[^-]*$/\1/')
 
           echo "::set-output name=branch_prefix::$branch_prefix"
 
