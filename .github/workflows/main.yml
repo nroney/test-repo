@@ -15,26 +15,19 @@ jobs:
         run: |
           # Get the branch name
           branch_name=$(echo "${GITHUB_REF#refs/heads/}")
-          echo "Branch Name: $branch_name"
 
           # Extract the prefix before the last '-' occurrence
-          branch_prefix=$(echo "$branch_name" | sed 's/-[^-]*$//')
-          echo "Branch Prefix: $branch_prefix"
+          branch_prefix=$(echo "$branch_name" | awk -F'-' '{ for (i=1; i<NF; i++) printf "%s%s", $i, (i<NF-1 ? "-" : ""); }')
 
           echo "::set-output name=branch_prefix::$branch_prefix"
 
       - name: Update PR Description
         run: |
           branch_prefix="${{ steps.extract_branch_name.outputs.branch_prefix }}"
-          echo "Branch Prefix Retrieved: $branch_prefix"
-
           pr_number=$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")
-          echo "PR Number: $pr_number"
-
           description=$(jq -r '.pull_request.body' "$GITHUB_EVENT_PATH")
-          echo "Description Before: $description"
-
           updated_description="${description%\"}\n\n**Branch Prefix:** ${branch_prefix}\""
+
           echo "Updated Description: $updated_description"
 
           curl -X PATCH \
