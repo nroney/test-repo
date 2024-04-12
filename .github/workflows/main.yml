@@ -4,29 +4,41 @@ on:
   pull_request:
 
 jobs:
-  generate_jira_ticket_link:
+  add_branch_prefix:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-      issues: write
-      pull-requests: write
     steps:
-      - uses: actions/github-script@v6
-        with:
-          script: |
-          
-            const title = context.payload.pull_request.title;
-            const match = title.match(/(mob|uet)\s*([\w-]+)/i);
-            if (match) {
-                const ticketNumber = match[2].replace(/\s/g, "-");
-                const jiraTicketLink = `https://your_organization.atlassian.net/browse/${ticketNumber}`;
-                let description = context.payload.pull_request.body ?? ``;
-                description = `${description}\nJira ticket: ${jiraTicketLink}`;
-                github.rest.pulls.update({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    pull_number: context.payload.pull_request.number,
-                    body: description
-                });
-            }
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Extract Branch Name
+        id: extract_branch_name
+        run: |
+          # Get the branch name
+          branch_name=$(echo "${GITHUB_REF#refs/heads/}")
+          echo "Branch Name: $branch_name"
+
+          # Extract the prefix before the last '-' occurrence
+          branch_prefix=$(echo "$branch_name" | rev | cut -d'-' -f2- | rev)
+          echo "Branch Prefix: $branch_prefix"
+
+          echo "::set-output name=branch_prefix::$branch_prefix"
+
+      - name: Update PR Description
+        run: |
+          branch_prefix="${{ steps.extract_branch_name.outputs.branch_prefix }}"
+          echo "Branch Prefix Retrieved: $branch_prefix"
+
+          pr_number=$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")
+          echo "PR Number: $pr_number"
+
+          description=$(jq -r '.pull_request.body' "$GITHUB_EVENT_PATH")
+          echo "Description Before: $description"
+
+          updated_description="${description%\"}\n\n**Branch Prefix:** ${branch_prefix}\""
+          echo "Updated Description: $updated_description"
+
+          curl -X PATCH \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d "{\"body\": \"$updated_description\"}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr_number"
