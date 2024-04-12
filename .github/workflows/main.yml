@@ -2,7 +2,6 @@ name: Add Branch Prefix to PR Description
 
 on:
   pull_request:
-    types: [opened]
 
 jobs:
   add_branch_prefix:
