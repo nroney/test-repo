@@ -10,34 +10,31 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+
       - name: Extract Branch Name
         id: extract_branch_name
         run: |
-          # Get the branch name
-          branch_name=$(echo "${GITHUB_REF#refs/heads/}")
-
-          # Extract the prefix before the last '-' occurrence
-          branch_prefix=$(echo "$branch_name" | awk -F'-' '{ for (i=1; i<NF; i++) printf "%s%s", $i, (i<NF-1 ? "-" : ""); }')
-
-          echo "::set-output name=branch_prefix::$branch_prefix"
+          const branchName = process.env.GITHUB_REF.replace('refs/heads/', '');
+          const branchParts = branchName.split('-');
+          const branchPrefix = branchParts.slice(0, -1).join('-');
+          console.log(`::set-output name=branch_prefix::${branchPrefix}`);
 
       - name: Update PR Description
         run: |
-          # Get the branch prefix from the previous step
-          branch_prefix="${{ steps.extract_branch_name.outputs.branch_prefix }}"
+          const branchPrefix = process.env.branch_prefix;
+          const prNumber = JSON.parse(process.env.GITHUB_EVENT_PATH).pull_request.number;
+          const description = fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8');
+          const updatedDescription = `${description.trim()}\n\n**Branch Prefix:** ${branchPrefix}`;
 
-          # Get the pull request number
-          pr_number=$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")
-
-          # Get the current description of the pull request
-          description=$(jq -r '.pull_request.body' "$GITHUB_EVENT_PATH")
-
-          # Append the branch prefix to the description
-          updated_description="$description\n\n**Branch Prefix:** $branch_prefix"
-
-          # Update the pull request description using GitHub API
-          curl -X PATCH \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d "{\"body\": \"$updated_description\"}" \
-            "https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number"
+          const { Octokit } = require("@octokit/core");
+          const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+          await octokit.request('PATCH /repos/{owner}/{repo}/pulls/{pull_number}', {
+            owner: process.env.GITHUB_REPOSITORY.split('/')[0],
+            repo: process.env.GITHUB_REPOSITORY.split('/')[1],
+            pull_number: prNumber,
+            body: updatedDescription
+          });
