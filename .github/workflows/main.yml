@@ -4,41 +4,24 @@ on:
   pull_request:
 
 jobs:
-  add_branch_prefix:
+  test:
+    name: PR Greeting
+    permissions:
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+      - uses: bcgov-nr/action-pr-description-add@main
+        with:
+          github_token: "${{ secrets.GITHUB_TOKEN }}"
+          limit_to_pr_opened: "true"
+          add_markdown: |
+            ---
 
-      - name: Extract Branch Name
-        id: extract_branch_name
-        run: |
-          # Get the branch name
-          branch_name=$(echo "${GITHUB_REF#refs/heads/}")
-          echo "Branch Name: $branch_name"
-
-          # Extract the prefix before the last '-' occurrence
-          branch_prefix=$(echo "$branch_name" | rev | cut -d'-' -f2- | rev)
-          echo "Branch Prefix: $branch_prefix"
-
-          echo "::set-output name=branch_prefix::$branch_prefix"
-
-      - name: Update PR Description
-        run: |
-          branch_prefix="${{ steps.extract_branch_name.outputs.branch_prefix }}"
-          echo "Branch Prefix Retrieved: $branch_prefix"
-
-          pr_number=$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")
-          echo "PR Number: $pr_number"
-
-          description=$(jq -r '.pull_request.body' "$GITHUB_EVENT_PATH")
-          echo "Description Before: $description"
-
-          updated_description="${description%\"}\n\n**Branch Prefix:** ${branch_prefix}\""
-          echo "Updated Description: $updated_description"
-
-          curl -X PATCH \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d "{\"body\": \"$updated_description\"}" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr_number"
+            # Things!
+            ## Excitement!
+            [Links!](https://google.ca)
+            `Code!`
+            _Italics_
+            *Bold*
+            * Bullets!
+            * and [more reading!](https://github.github.com/gfm/)
