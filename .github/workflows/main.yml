@@ -13,19 +13,23 @@ jobs:
       - name: Extract Branch Name
         id: extract_branch_name
         run: |
-          branchName=$(echo "${GITHUB_REF#refs/heads/}")
-          branchPrefix=$(echo "$branchName" | awk -F'-' '{ for (i=1; i<NF; i++) printf "%s%s", $i, (i<NF-1 ? "-" : ""); }')
-          echo "::set-output name=branch_prefix::$branchPrefix"
+          # Get the branch name
+          branch_name=$(echo "${GITHUB_REF#refs/heads/}")
+
+          # Extract the prefix before the last '-' occurrence
+          branch_prefix=$(echo "$branch_name" | sed 's/-[^-]*$//')
+
+          echo "::set-output name=branch_prefix::$branch_prefix"
 
       - name: Update PR Description
         run: |
-          branchPrefix="${{ steps.extract_branch_name.outputs.branch_prefix }}"
-          prNumber=$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")
+          branch_prefix="${{ steps.extract_branch_name.outputs.branch_prefix }}"
+          pr_number=$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")
           description=$(jq -r '.pull_request.body' "$GITHUB_EVENT_PATH")
-          updatedDescription="${description%\"}\n\n**Branch Prefix:** ${branchPrefix}\""
+          updated_description="${description%\"}\n\n**Branch Prefix:** ${branch_prefix}\""
 
           curl -X PATCH \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            -d "{\"body\": \"$updatedDescription\"}" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$prNumber"
+            -d "{\"body\": \"$updated_description\"}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr_number"
