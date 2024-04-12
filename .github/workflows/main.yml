@@ -10,18 +10,21 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: bcgov-nr/action-pr-description-add@main
+      - uses: actions/github-script@v6
         with:
-          github_token: "${{ secrets.GITHUB_TOKEN }}"
-          limit_to_pr_opened: "true"
-          add_markdown: |
-            ---
-
-            # Things!
-            ## Excitement!
-            [Links!](https://google.ca)
-            `Code!`
-            _Italics_
-            *Bold*
-            * Bullets!
-            * and [more reading!](https://github.github.com/gfm/)
+          script: |
+          
+            const title = context.payload.pull_request.title;
+            const match = title.match(/(mob|uet)\s*([\w-]+)/i);
+            if (match) {
+                const ticketNumber = match[2].replace(/\s/g, "-");
+                const jiraTicketLink = `https://your_organization.atlassian.net/browse/${ticketNumber}`;
+                let description = context.payload.pull_request.body ?? ``;
+                description = `${description}\nJira ticket: ${jiraTicketLink}`;
+                github.rest.pulls.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: context.payload.pull_request.number,
+                    body: description
+                });
+            }
