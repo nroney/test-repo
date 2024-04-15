@@ -15,7 +15,7 @@ jobs:
           echo "Branch Name: $branch_name"
 
           # Extract Jira story number using regex
-          if [[ $branch_name =~ ([A-Z]+-[0-9]+) ]]; then
+           if [[ $branch_name =~ ([^-]+-[^-]+) ]]; then
             jira_story_number="${BASH_REMATCH[1]}"
             echo "Jira Story Number: $jira_story_number"
           else
