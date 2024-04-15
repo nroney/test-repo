@@ -25,25 +25,16 @@ jobs:
 
           echo "::set-output name=jira_story_number::$jira_story_number"
 
-      - name: Append Jira Story Number to PR Description
-        if: steps.extract_branch_name.outputs.jira_story_number != ''
-        uses: actions/github-script@v5
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            console.log('Starting script...');
-            const prNumber = context.payload.pull_request.number;
-            console.log('PR Number:', prNumber);
-            const currentDescription = context.payload.pull_request.body;
-            console.log('Current Description:', currentDescription);
-            const jiraStoryNumber = '${{ steps.extract_branch_name.outputs.jira_story_number }}';
-            console.log('Extracted Jira Story Number:', jiraStoryNumber);
-            const updatedDescription = `${currentDescription}\n\n**Jira Story Number:** ${jiraStoryNumber}`;
-            console.log('Updated Description:', updatedDescription);
-            await github.pulls.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-              body: updatedDescription
-            });
-            console.log('Description updated successfully.');
+  pull-request:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: pull-request
+      uses: repo-sync/pull-request@v2
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+    - name: update-pull-request
+      uses: kt3k/update-pr-description@v2
+      with:
+        pr_body: '${{ steps.extract_branch_name.outputs.jira_story_number }}'
+        github_token: ${{ secrets.GITHUB_TOKEN }}
