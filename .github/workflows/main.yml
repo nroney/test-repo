@@ -31,13 +31,19 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            console.log('Starting script...');
             const prNumber = context.payload.pull_request.number;
+            console.log('PR Number:', prNumber);
             const currentDescription = context.payload.pull_request.body;
+            console.log('Current Description:', currentDescription);
             const jiraStoryNumber = '${{ steps.extract_branch_name.outputs.jira_story_number }}';
+            console.log('Extracted Jira Story Number:', jiraStoryNumber);
             const updatedDescription = `${currentDescription}\n\n**Jira Story Number:** ${jiraStoryNumber}`;
+            console.log('Updated Description:', updatedDescription);
             await github.pulls.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: prNumber,
               body: updatedDescription
             });
+            console.log('Description updated successfully.');
