@@ -29,5 +29,5 @@ jobs:
         uses: kt3k/update-pr-description@v2
         with:
           pr_body: "Test"
-          destination_branch: release
+          destination_branch: linq-223-testing
           github_token: ${{ secrets.GITHUB_TOKEN }}
