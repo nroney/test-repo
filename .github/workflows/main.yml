@@ -11,7 +11,7 @@ jobs:
         id: extract_jira_story_number
         run: |
           # Get the branch name
-          branch_name=$(echo "${GITHUB_REF#refs/heads/}")
+          branch_name=$(echo "${GITHUB_REF##*/}")
           echo "Branch Name: $branch_name"
 
           # Extract Jira story number using regex
