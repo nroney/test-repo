@@ -34,5 +34,5 @@ jobs:
           repo: ${{ github.event.repository.name }}
           owner: ${{ github.repository_owner }}
           pr: ${{ github.event.number }}
-          url: "https://my-url.test"
-          message: ${{ steps.extract_jira_story_number.outputs.jira_story_number }}
+          url: "https://linqto.atlassian.net/browse/${{ steps.extract_jira_story_number.outputs.jira_story_number }}"
+          message: "Jira Link"
