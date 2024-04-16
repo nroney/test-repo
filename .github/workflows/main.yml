@@ -24,18 +24,18 @@ jobs:
           fi
 
           echo "::set-output name=jira_story_number::$jira_story_number"
-  test:
-    name: PR Greeting
-    permissions:
-      pull-requests: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: bcgov-nr/action-pr-description-add@main
-        with:
-          github_token: "${{ secrets.GITHUB_TOKEN }}"
-          limit_to_pr_opened: "true"
-          add_markdown: |
-            [Links!](https://linqto.atlassian.net/browse/${{ github.head_ref }})
-            `Code!`
-            _Italics_
-            *Bold*
+
+      - name: PR Greeting
+        permissions:
+          pull-requests: write
+        runs-on: ubuntu-latest
+        steps:
+          - uses: bcgov-nr/action-pr-description-add@main
+            with:
+              github_token: "${{ secrets.GITHUB_TOKEN }}"
+              limit_to_pr_opened: "true"
+              add_markdown: |
+                [Links!](https://linqto.atlassian.net/browse/${{ github.head_ref }})
+                `Code!`
+                _Italics_
+                *Bold*
