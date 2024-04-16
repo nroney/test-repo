@@ -6,6 +6,8 @@ on:
 jobs:
   add_deploy_url:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Add deploy URL to PR description
         uses: chabroA/action-append-pr-description@master
@@ -16,3 +18,4 @@ jobs:
           pr: ${{ github.event.number }}
           url: "https://my-url.test"
           message: "My url :"
+
