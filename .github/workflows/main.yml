@@ -38,4 +38,4 @@ jobs:
           owner: ${{ github.repository_owner }}
           pr: ${{ github.event.number }}
           url: "https://my-url.test"
-          message: ${{ jira_story_number }}
+          message: ${{ steps.extract_jira_story_number.outputs.jira_story_number }}
