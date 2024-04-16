@@ -23,7 +23,6 @@ jobs:
           else
             jira_story_number=""
             echo "Jira story number not found in branch name"
-            exit 1
           fi
 
           echo "::set-output name=jira_story_number::$jira_story_number"
