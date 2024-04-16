@@ -1,9 +1,30 @@
-name: Add deploy URL to PR description
+name: Add Branch Prefix to PR Description
 
 on:
   pull_request:
 
 jobs:
+  parse_jira_story_number:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract Jira Story Number
+        id: extract_jira_story_number
+        run: |
+          # Get the branch name
+          branch_name=$(echo "${{ github.head_ref }}")
+          echo "Branch Name: $branch_name"
+
+          # Extract Jira story number using regex
+          if [[ $branch_name =~ ([^-]+-[^-]+) ]]; then
+            jira_story_number="${BASH_REMATCH[1]}"
+            echo "Jira Story Number: $jira_story_number"
+          else
+            echo "Jira story number not found in branch name"
+            exit 1
+          fi
+
+          echo "::set-output name=jira_story_number::$jira_story_number"
+
   add_deploy_url:
     runs-on: ubuntu-latest
     permissions:
@@ -18,4 +39,3 @@ jobs:
           pr: ${{ github.event.number }}
           url: "https://my-url.test"
           message: "My url :"
-
