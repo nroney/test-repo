@@ -21,6 +21,7 @@ jobs:
             jira_story_number="${BASH_REMATCH[1]}"
             echo "Jira Story Number: $jira_story_number"
           else
+            jira_story_number=""
             echo "Jira story number not found in branch name"
             exit 1
           fi
