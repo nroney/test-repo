@@ -32,13 +32,12 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const prNumber = context.payload.pull_request.number;
-            const newDescription = `New description with Jira Story Number: ${context.payload.inputs.jira_story_number}`;
+            const newDescription = `New description with Jira Story Number: ${process.env.JIRA_STORY_NUMBER}`;
             github.pulls.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: prNumber,
               body: newDescription
             });
-            inputs:
-            jira_story_number: ${{ steps.extract_jira_story_number.outputs.jira_story_number }}
-
+        env:
+          JIRA_STORY_NUMBER: ${{ steps.extract_jira_story_number.outputs.jira_story_number }}
