@@ -1,4 +1,4 @@
-name: Add Branch Prefix to PR Description
+name: Extract Branch Prefix/Add Jira Link
 
 on:
   pull_request:
@@ -27,7 +27,7 @@ jobs:
 
           echo "::set-output name=jira_story_number::$jira_story_number"
 
-      - name: Add deploy URL to PR description
+      - name: Add Jira URL to PR description
         uses: chabroA/action-append-pr-description@master
         with:
           auth: ${{ secrets.GITHUB_TOKEN }}
