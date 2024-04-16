@@ -1,18 +1,41 @@
-name: "Update Pull Request"
-on: pull_request
+name: Add Branch Prefix to PR Description
+
+on:
+  pull_request:
 
 jobs:
-  update_pr:
+  parse_jira_story_number:
     runs-on: ubuntu-latest
     steps:
-    - uses: tzkhan/pr-update-action@v2
-      with:
-        repo-token: "${{ secrets.GITHUB_TOKEN }}"
-        base-branch-regex: '[a-z\d-_.\\/]+'
-        head-branch-regex: '.+-'
-        title-template: '[%headbranch%] '
-        body-template: |
-          Merging into '%basebranch%'
-          [Link to %headbranch%](https://url/to/browse/ticket/%headbranch%)
-        body-update-action: 'suffix'
-        body-uppercase-base-match: false
+      - name: Extract Jira Story Number
+        id: extract_jira_story_number
+        run: |
+          # Get the branch name
+          branch_name=$(echo "${{ github.head_ref }}")
+          echo "Branch Name: $branch_name"
+
+          # Extract Jira story number using regex
+          if [[ $branch_name =~ ([^-]+-[^-]+) ]]; then
+            jira_story_number="${BASH_REMATCH[1]}"
+            echo "Jira Story Number: $jira_story_number"
+          else
+            echo "Jira story number not found in branch name"
+            exit 1
+          fi
+
+          echo "::set-output name=jira_story_number::$jira_story_number"
+  test:
+    name: PR Greeting
+    permissions:
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: bcgov-nr/action-pr-description-add@main
+        with:
+          github_token: "${{ secrets.GITHUB_TOKEN }}"
+          limit_to_pr_opened: "true"
+          add_markdown: |
+            [Links!](https://linqto.atlassian.net/browse/${{ github.head_ref }})
+            `Code!`
+            _Italics_
+            *Bold*
