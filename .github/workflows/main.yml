@@ -36,7 +36,7 @@ jobs:
           github_token: "${{ secrets.GITHUB_TOKEN }}"
           limit_to_pr_opened: "true"
           add_markdown: |
-            $jira_story_number
+            ${{ jira_story_number }}
             `Code!`
             _Italics_
             *Bold*
