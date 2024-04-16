@@ -24,3 +24,18 @@ jobs:
           fi
 
           echo "::set-output name=jira_story_number::$jira_story_number"
+
+      - name: Update PR Description
+        if: success()
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const newDescription = `New description with Jira Story Number: ${steps.extract_jira_story_number.outputs.jira_story_number}`;
+            github.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              body: newDescription
+            });
