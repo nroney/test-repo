@@ -16,8 +16,8 @@ jobs:
         run: |
           echo "Installing GitHub CLI..."
           sudo apt-get update
-          sudo apt-get install gh -y
-          gh --version  # Verify installation
+          sudo apt-get install gh -y || { echo "GitHub CLI installation failed"; exit 1; }
+          gh --version
 
       - name: Extract JIRA Ticket from Branch
         id: extract_jira
@@ -40,8 +40,8 @@ jobs:
       - name: Authenticate GitHub CLI
         run: |
           echo "Authenticating GitHub CLI..."
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-          gh auth status  # Verify authentication
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token || { echo "GitHub CLI authentication failed"; exit 1; }
+          gh auth status
 
       - name: Get Current PR Title
         id: get_pr_title
@@ -51,7 +51,7 @@ jobs:
           echo "PR Number: $PR_NUMBER"
 
           # Fetch the current PR title using GitHub CLI
-          PR_TITLE=$(gh pr view $PR_NUMBER --json title -q ".title")
+          PR_TITLE=$(gh pr view $PR_NUMBER --json title -q ".title") || { echo "Failed to fetch PR title"; exit 1; }
           echo "PR Title: $PR_TITLE"
 
           if [ -z "$PR_TITLE" ]; then
@@ -70,7 +70,7 @@ jobs:
             echo "New Title: $UPDATED_TITLE"
 
             # Update the PR title using GitHub CLI
-            gh pr edit ${{ github.event.pull_request.number }} --title "$UPDATED_TITLE"
+            gh pr edit ${{ github.event.pull_request.number }} --title "$UPDATED_TITLE" || { echo "Failed to update PR title"; exit 1; }
             echo "PR title updated successfully."
           else
             echo "JIRA ticket already present in the title."
