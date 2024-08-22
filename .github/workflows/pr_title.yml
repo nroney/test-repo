@@ -13,9 +13,10 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up GitHub CLI
-        uses: cli/cli@v2
-        with:
-          version: latest
+        run: |
+          # Install GitHub CLI
+          sudo apt-get update
+          sudo apt-get install gh -y
 
       - name: Extract JIRA Ticket from Branch
         id: extract_jira
@@ -33,6 +34,9 @@ jobs:
 
           echo "JIRA Ticket: $JIRA_TICKET"
           echo "JIRA_TICKET=$JIRA_TICKET" >> $GITHUB_ENV
+
+      - name: Authenticate GitHub CLI
+        run: gh auth login --with-token <<< ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get Current PR Title
         id: get_pr_title
@@ -71,3 +75,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JIRA_TICKET: ${{ env.JIRA_TICKET }}
           PR_TITLE: ${{ env.PR_TITLE }}
+
