@@ -12,47 +12,43 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Display Branch Name
-        id: display-branch
-        run: |
-          echo "Branch name: ${{ github.head_ref }}"
-          echo "BRANCH_NAME=${{ github.head_ref }}" >> $GITHUB_ENV
+      - name: Set up GitHub CLI
+        uses: cli/cli@v2
+        with:
+          version: latest
 
       - name: Extract JIRA Ticket from Branch
         id: extract_jira
         run: |
-          BRANCH_NAME="${{ env.BRANCH_NAME }}"
-          echo "Extracted Branch Name: $BRANCH_NAME"
+          BRANCH_NAME="${{ github.head_ref }}"
+          echo "Branch name: $BRANCH_NAME"
 
           # Extract JIRA ticket number (e.g., ABC-1234)
           JIRA_TICKET=$(echo "$BRANCH_NAME" | grep -oE '[A-Z]+-[0-9]+')
 
+          if [ -z "$JIRA_TICKET" ]; then
+            echo "No JIRA ticket found in branch name."
+            exit 1
+          fi
+
           echo "JIRA Ticket: $JIRA_TICKET"
           echo "JIRA_TICKET=$JIRA_TICKET" >> $GITHUB_ENV
 
-      - name: Debug Environment Variables
-        id: debug-variables
-        run: |
-          echo "JIRA_TICKET=${{ env.JIRA_TICKET }}"
-          echo "BRANCH_NAME=${{ env.BRANCH_NAME }}"
-
-      - name: Get PR Title
+      - name: Get Current PR Title
         id: get_pr_title
-        if: ${{ env.JIRA_TICKET != '' }}
         run: |
-          echo "Fetching PR Title..."
-          PR_TITLE=$(curl -s \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
-            | jq -r .title)
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          echo "Fetching PR title for PR #$PR_NUMBER"
+
+          # Fetch the current PR title using GitHub CLI
+          PR_TITLE=$(gh pr view $PR_NUMBER --json title -q ".title")
 
           if [ -z "$PR_TITLE" ]; then
             echo "Error fetching PR title."
             exit 1
           fi
 
-          echo "PR Title: $PR_TITLE"
+          echo "Current PR Title: $PR_TITLE"
           echo "PR_TITLE=$PR_TITLE" >> $GITHUB_ENV
 
       - name: Update PR Title
@@ -64,12 +60,8 @@ jobs:
 
             echo "Updating PR title to: $UPDATED_TITLE"
 
-            curl -s \
-              -X PATCH \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
-              -d "{\"title\":\"$UPDATED_TITLE\"}"
+            # Update the PR title using GitHub CLI
+            gh pr edit ${{ github.event.pull_request.number }} --title "$UPDATED_TITLE"
 
             echo "PR title updated successfully."
           else
