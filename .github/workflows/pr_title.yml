@@ -1,0 +1,37 @@
+name: Prepend JIRA Ticket to PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  update-pr-title:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Extract JIRA Ticket and Update PR Title
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the branch name
+          BRANCH_NAME="${{ github.head_ref }}"
+
+          # Extract JIRA ticket number and prefix (assuming format like "feature/ABC-1234-description")
+          JIRA_TICKET=$(echo "$BRANCH_NAME" | grep -oE '[A-Z]+-[0-9]+')
+
+          if [ -n "$JIRA_TICKET" ]; then
+            # Get the current PR title
+            PR_TITLE=$(gh pr view ${{ github.event.pull_request.number }} --json title -q .title)
+
+            # Check if the JIRA ticket is already in the title
+            if [[ "$PR_TITLE" != *"$JIRA_TICKET"* ]]; then
+              # Prepend the JIRA ticket to the title
+              UPDATED_TITLE="[$JIRA_TICKET] $PR_TITLE"
+              gh pr edit ${{ github.event.pull_request.number }} --title "$UPDATED_TITLE"
+            fi
+          fi
+
+
