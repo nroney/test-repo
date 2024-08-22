@@ -1,0 +1,54 @@
+name: Prepend JIRA Ticket to PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  update-pr-title:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Extract JIRA Ticket
+        id: extract
+        run: |
+          # Get the branch name
+          BRANCH_NAME="${{ github.head_ref }}"
+
+          # Extract JIRA ticket number and prefix (assuming format like "feature/ABC-1234-description")
+          JIRA_TICKET=$(echo "$BRANCH_NAME" | grep -oE '[A-Z]+-[0-9]+')
+
+          # Save the JIRA ticket to a file if it exists
+          if [ -n "$JIRA_TICKET" ]; then
+            echo "JIRA_TICKET=$JIRA_TICKET" >> $GITHUB_ENV
+          else
+            echo "JIRA_TICKET=" >> $GITHUB_ENV
+          fi
+
+      - name: Update PR Title
+        if: env.JIRA_TICKET != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JIRA_TICKET: ${{ env.JIRA_TICKET }}
+        run: |
+          # Fetch the current PR title
+          PR_TITLE=$(curl -s \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
+            | jq -r .title)
+
+          # Check if the JIRA ticket is already in the title
+          if [[ "$PR_TITLE" != *"$JIRA_TICKET"* ]]; then
+            # Prepend the JIRA ticket to the title
+            UPDATED_TITLE="[$JIRA_TICKET] $PR_TITLE"
+            curl -s \
+              -X PATCH \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
+              -d "{\"title\":\"$UPDATED_TITLE\"}"
+          fi
