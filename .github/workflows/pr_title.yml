@@ -12,15 +12,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up GitHub CLI
+      - name: Install GitHub CLI
         run: |
-          # Install GitHub CLI
+          echo "Installing GitHub CLI..."
           sudo apt-get update
           sudo apt-get install gh -y
+          gh --version  # Verify installation
 
       - name: Extract JIRA Ticket from Branch
         id: extract_jira
         run: |
+          echo "Extracting JIRA ticket from branch name..."
           BRANCH_NAME="${{ github.head_ref }}"
           echo "Branch name: $BRANCH_NAME"
 
@@ -36,37 +38,39 @@ jobs:
           echo "JIRA_TICKET=$JIRA_TICKET" >> $GITHUB_ENV
 
       - name: Authenticate GitHub CLI
-        run: gh auth login --with-token <<< ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Authenticating GitHub CLI..."
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          gh auth status  # Verify authentication
 
       - name: Get Current PR Title
         id: get_pr_title
         run: |
+          echo "Fetching PR title..."
           PR_NUMBER=${{ github.event.pull_request.number }}
-          echo "Fetching PR title for PR #$PR_NUMBER"
+          echo "PR Number: $PR_NUMBER"
 
           # Fetch the current PR title using GitHub CLI
           PR_TITLE=$(gh pr view $PR_NUMBER --json title -q ".title")
+          echo "PR Title: $PR_TITLE"
 
           if [ -z "$PR_TITLE" ]; then
             echo "Error fetching PR title."
             exit 1
           fi
 
-          echo "Current PR Title: $PR_TITLE"
           echo "PR_TITLE=$PR_TITLE" >> $GITHUB_ENV
 
       - name: Update PR Title
         if: ${{ env.JIRA_TICKET != '' && env.PR_TITLE != '' }}
         run: |
-          # Check if the JIRA ticket is already in the title
+          echo "Updating PR title..."
           if [[ "$PR_TITLE" != *"$JIRA_TICKET"* ]]; then
             UPDATED_TITLE="[$JIRA_TICKET] $PR_TITLE"
-
-            echo "Updating PR title to: $UPDATED_TITLE"
+            echo "New Title: $UPDATED_TITLE"
 
             # Update the PR title using GitHub CLI
             gh pr edit ${{ github.event.pull_request.number }} --title "$UPDATED_TITLE"
-
             echo "PR title updated successfully."
           else
             echo "JIRA ticket already present in the title."
@@ -75,4 +79,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JIRA_TICKET: ${{ env.JIRA_TICKET }}
           PR_TITLE: ${{ env.PR_TITLE }}
-
