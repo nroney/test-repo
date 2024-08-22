@@ -27,23 +27,20 @@ jobs:
           # Extract JIRA ticket number (e.g., ABC-1234)
           JIRA_TICKET=$(echo "$BRANCH_NAME" | grep -oE '[A-Z]+-[0-9]+')
 
-          if [ -z "$JIRA_TICKET" ]; then
-            echo "No JIRA ticket found in branch name."
-            exit 1
-          fi
-
           echo "JIRA Ticket: $JIRA_TICKET"
           echo "JIRA_TICKET=$JIRA_TICKET" >> $GITHUB_ENV
 
       - name: Debug Environment Variables
+        id: debug-variables
         run: |
           echo "JIRA_TICKET=${{ env.JIRA_TICKET }}"
           echo "BRANCH_NAME=${{ env.BRANCH_NAME }}"
 
       - name: Get PR Title
         id: get_pr_title
-        if: env.JIRA_TICKET != ''
+        if: ${{ env.JIRA_TICKET != '' }}
         run: |
+          echo "Fetching PR Title..."
           PR_TITLE=$(curl -s \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
@@ -59,7 +56,7 @@ jobs:
           echo "PR_TITLE=$PR_TITLE" >> $GITHUB_ENV
 
       - name: Update PR Title
-        if: env.JIRA_TICKET != '' && env.PR_TITLE != ''
+        if: ${{ env.JIRA_TICKET != '' && env.PR_TITLE != '' }}
         run: |
           # Check if the JIRA ticket is already in the title
           if [[ "$PR_TITLE" != *"$JIRA_TICKET"* ]]; then
