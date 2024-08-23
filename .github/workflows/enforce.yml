@@ -1,0 +1,24 @@
+name: Enforce Jira Key in Pull Request Title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  enforce-jira-key:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check PR title for Jira Key
+        id: check_title
+        run: |
+          # Regex pattern for Jira keys (e.g., ABC-123)
+          jira_pattern='[A-Z]+-[0-9]+'
+          
+          # Check if the PR title matches the Jira key pattern
+          if [[ "${{ github.event.pull_request.title }}" =~ $jira_pattern ]]; then
+            echo "Jira key found in the title."
+          else
+            echo "Error: Jira key not found in the PR title."
+            exit 1
+          fi
