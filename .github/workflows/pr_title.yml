@@ -9,7 +9,7 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - name: Extract Jira Story Number
+      - name: Title Extract Jira Story Number
         id: extract_jira_story_number
         run: |
           # Get the branch name
