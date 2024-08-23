@@ -1,4 +1,4 @@
-name: Enforce PR Title Contains Jira Key 
+name: Enforce PR Title Contains Jira Key or Specific Keywords
 
 on:
   pull_request:
@@ -15,13 +15,17 @@ jobs:
           # Regex pattern for Jira keys (e.g., ABC-123)
           jira_pattern='[A-Z]+-[0-9]+'
           
+          # Keywords allowed in the title
+          keywords='[Mm]erge|[Mm]aster|[Cc]hore|[Tt]est|[Aa]lpha'
+          
           # PR title
           pr_title="${{ github.event.pull_request.title }}"
 
-          # Check if the PR title matches the Jira key pattern or contains "merge"
-          if [[ "$pr_title" =~ $jira_pattern ]] || [[ "$pr_title" =~ [Mm]erge ]]; then
+          # Check if the PR title matches the Jira key pattern or contains any of the keywords
+          if [[ "$pr_title" =~ $jira_pattern ]] || [[ "$pr_title" =~ $keywords ]]; then
             echo "PR title is valid."
           else
-            echo "Error: PR title must contain a Jira key or the word 'merge'."
+            echo "Error: PR title must contain a Jira key or one of the following keywords: merge, master, chore, test, alpha."
             exit 1
           fi
+
