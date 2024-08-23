@@ -1,4 +1,4 @@
-name: Extract Branch Prefix/Add Jira Link
+name: PR Title
 
 on:
   pull_request:
