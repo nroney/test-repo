@@ -2,27 +2,22 @@ name: Extract Branch Prefix/Add Jira Link
 
 on:
   pull_request:
-    types: [opened, edited, synchronize]
 
 jobs:
   add_deploy_url:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v3
-
       - name: Extract Jira Story Number
         id: extract_jira_story_number
         run: |
           # Get the branch name
-          branch_name="${{ github.head_ref }}"
+          branch_name=$(echo "${{ github.head_ref }}")
           echo "Branch Name: $branch_name"
 
           # Extract Jira story number using regex
-          if [[ $branch_name =~ ([A-Z]+-[0-9]+) ]]; then
+          if [[ $branch_name =~ ([^-]+-[^-]+) ]]; then
             jira_story_number="${BASH_REMATCH[1]}"
             echo "Jira Story Number: $jira_story_number"
           else
@@ -30,16 +25,14 @@ jobs:
             echo "Jira story number not found in branch name"
           fi
 
-          echo "jira_story_number=$jira_story_number" >> $GITHUB_ENV
-
-      - name: Fetch the current PR title
-        id: fetch_pr_title
-        run: |
-          pr_title=$(gh pr view ${{ github.event.pull_request.number }} --json title --jq .title)
-          echo "pr_title=$pr_title" >> $GITHUB_ENV
-
-      - name: Prepend Jira Story Number to PR Title
-        if: env.jira_story_number
-        run: |
-          new_title="${{ env.jira_story_number }}: ${{ env.pr_title }}"
-          gh pr edit ${{ github.event.pull_request.number }} --title "$new_title"
+          echo "::set-output name=jira_story_number::$jira_story_number"
+      - name: Add Jira URL to PR title
+      - uses: deepakputhraya/action-pr-title@master
+        with:
+          regex: '([a-z])+\/([a-z])+' # Regex the title should match.
+          allowed_prefixes: 'feature,fix,JIRA' # title should start with the given prefix
+          disallowed_prefixes: 'feat/,hotfix' # title should not start with the given prefix
+          prefix_case_sensitive: false # title prefix are case insensitive
+          min_length: 5 # Min length of the title
+          max_length: 20 # Max length of the title
+          github_token: ${{ secrets.github.token }} # Default: ${{ github.token }}
