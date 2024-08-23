@@ -1,81 +1,34 @@
-name: Prepend JIRA Ticket to PR Title
+name: Extract Branch Prefix/Add Jira Link
 
 on:
   pull_request:
-    types: [opened, edited, synchronize]
 
 jobs:
-  update-pr-title:
+  add_deploy_url:
     runs-on: ubuntu-latest
-
+    permissions:
+      pull-requests: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install GitHub CLI
+      - name: Extract Jira Story Number
+        id: extract_jira_story_number
         run: |
-          echo "Installing GitHub CLI..."
-          sudo apt-get update
-          sudo apt-get install gh -y || { echo "GitHub CLI installation failed"; exit 1; }
-          gh --version
+          # Get the branch name
+          branch_name=$(echo "${{ github.head_ref }}")
+          echo "Branch Name: $branch_name"
 
-      - name: Extract JIRA Ticket from Branch
-        id: extract_jira
-        run: |
-          echo "Extracting JIRA ticket from branch name..."
-          BRANCH_NAME="${{ github.head_ref }}"
-          echo "Branch name: $BRANCH_NAME"
-
-          # Extract JIRA ticket number (e.g., ABC-1234)
-          JIRA_TICKET=$(echo "$BRANCH_NAME" | grep -oE '[A-Z]+-[0-9]+')
-
-          if [ -z "$JIRA_TICKET" ]; then
-            echo "No JIRA ticket found in branch name."
-            exit 1
-          fi
-
-          echo "JIRA Ticket: $JIRA_TICKET"
-          echo "JIRA_TICKET=$JIRA_TICKET" >> $GITHUB_ENV
-
-      - name: Authenticate GitHub CLI
-        run: |
-          echo "Authenticating GitHub CLI..."
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token || { echo "GitHub CLI authentication failed"; exit 1; }
-          gh auth status
-
-      - name: Get Current PR Title
-        id: get_pr_title
-        run: |
-          echo "Fetching PR title..."
-          PR_NUMBER=${{ github.event.pull_request.number }}
-          echo "PR Number: $PR_NUMBER"
-
-          # Fetch the current PR title using GitHub CLI
-          PR_TITLE=$(gh pr view $PR_NUMBER --json title -q ".title") || { echo "Failed to fetch PR title"; exit 1; }
-          echo "PR Title: $PR_TITLE"
-
-          if [ -z "$PR_TITLE" ]; then
-            echo "Error fetching PR title."
-            exit 1
-          fi
-
-          echo "PR_TITLE=$PR_TITLE" >> $GITHUB_ENV
-
-      - name: Update PR Title
-        if: ${{ env.JIRA_TICKET != '' && env.PR_TITLE != '' }}
-        run: |
-          echo "Updating PR title..."
-          if [[ "$PR_TITLE" != *"$JIRA_TICKET"* ]]; then
-            UPDATED_TITLE="[$JIRA_TICKET] $PR_TITLE"
-            echo "New Title: $UPDATED_TITLE"
-
-            # Update the PR title using GitHub CLI
-            gh pr edit ${{ github.event.pull_request.number }} --title "$UPDATED_TITLE" || { echo "Failed to update PR title"; exit 1; }
-            echo "PR title updated successfully."
+          # Extract Jira story number using regex
+          if [[ $branch_name =~ ([^-]+-[^-]+) ]]; then
+            jira_story_number="${BASH_REMATCH[1]}"
+            echo "Jira Story Number: $jira_story_number"
           else
-            echo "JIRA ticket already present in the title."
+            jira_story_number=""
+            echo "Jira story number not found in branch name"
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          JIRA_TICKET: ${{ env.JIRA_TICKET }}
-          PR_TITLE: ${{ env.PR_TITLE }}
+
+          echo "::set-output name=jira_story_number::$jira_story_number"
+
+      - name: Prepend Jira ticket to PR title
+        if: env.branch_name
+        run: |
+          new_title="${{ steps.extract_jira_story_number.outputs.jira_story_number }}: ${{ env.pr_title }}"
+          gh pr edit ${{ github.event.pull_request.number }} --title "$new_title"
